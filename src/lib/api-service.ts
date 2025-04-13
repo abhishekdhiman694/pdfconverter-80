@@ -153,4 +153,17 @@ export class ApiService {
       return null;
     }
   }
+  
+  /**
+   * Check if the server is running
+   */
+  static async checkServerHealth(): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_URL}/health`);
+      return response.ok;
+    } catch (error) {
+      console.error('Server health check failed:', error);
+      return false;
+    }
+  }
 }

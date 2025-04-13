@@ -11,6 +11,7 @@ interface ConversionContextType {
   conversionCount: number;
   showLoginPrompt: () => void;
   refreshUserData: () => Promise<void>;
+  isServerConnected: boolean;
 }
 
 // Create a custom event for opening the login dialog
@@ -23,6 +24,7 @@ const ConversionContext = createContext<ConversionContextType>({
   conversionCount: 0,
   showLoginPrompt: () => {},
   refreshUserData: async () => {},
+  isServerConnected: false,
 });
 
 export const useConversion = () => useContext(ConversionContext);
@@ -31,6 +33,30 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [user, setUser] = useLocalStorage<User | null>('pdfZenithUser', null);
   const [conversionCount, setConversionCount] = useState(0);
   const [canConvert, setCanConvert] = useState(true);
+  const [isServerConnected, setIsServerConnected] = useState(false);
+  
+  // Check if the backend server is connected
+  useEffect(() => {
+    const checkServerConnection = async () => {
+      const isConnected = await ApiService.checkServerHealth();
+      setIsServerConnected(isConnected);
+      
+      if (!isConnected) {
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Could not connect to the server. Some features may be unavailable."
+        });
+      }
+    };
+    
+    checkServerConnection();
+    
+    // Set up a periodic health check every 30 seconds
+    const interval = setInterval(checkServerConnection, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   // Initialize conversion count from user data
   useEffect(() => {
@@ -125,7 +151,8 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         resetConversions,
         conversionCount,
         showLoginPrompt,
-        refreshUserData
+        refreshUserData,
+        isServerConnected
       }}
     >
       {children}

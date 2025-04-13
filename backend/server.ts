@@ -15,8 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/pdfZenith';
-const client = new MongoClient(uri);
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri || '');
 
 // Database and collections
 let db: any;
@@ -26,7 +26,7 @@ let usersCollection: any;
 async function connectToDatabase() {
   try {
     await client.connect();
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB Atlas successfully');
     
     db = client.db('pdfZenith');
     usersCollection = db.collection('users');
@@ -170,13 +170,23 @@ app.get('/api/users/:email', async (req, res) => {
     }
     
     // Don't send password back
-    delete user.password;
+    const userResponse = {
+      id: user._id,
+      email: user.email,
+      username: user.username,
+      convertCount: user.convertCount
+    };
     
-    res.status(200).json({ user });
+    res.status(200).json({ user: userResponse });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// Add a health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
 // Initialize and start server
