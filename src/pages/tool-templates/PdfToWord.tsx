@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -9,10 +10,11 @@ import { Download, FileText, AlertCircle } from 'lucide-react';
 import { useConversion } from '@/contexts/ConversionContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { PDFService } from '@/lib/pdf-service';
 
 const PdfToWord = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [convertedFiles, setConvertedFiles] = useState<string[]>([]);
+  const [convertedFiles, setConvertedFiles] = useState<{ name: string; blob: Blob }[]>([]);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { canConvert, incrementConversion } = useConversion();
@@ -34,7 +36,7 @@ const PdfToWord = () => {
     setSelectedFiles(pdfFiles);
   };
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     if (!canConvert && !user) {
       setShowLoginDialog(true);
       return;
@@ -50,37 +52,63 @@ const PdfToWord = () => {
     }
     
     incrementConversion();
-    
     setConverting(true);
     setProgress(0);
     
-    const interval = setInterval(() => {
-      setProgress(prevProgress => {
-        if (prevProgress >= 100) {
-          clearInterval(interval);
-          setConverting(false);
-          
-          const converted = selectedFiles.map(file => 
-            file.name.replace('.pdf', '.docx')
-          );
-          setConvertedFiles(converted);
-          
-          toast({
-            title: "Conversion complete",
-            description: `Successfully converted ${selectedFiles.length} file(s).`
-          });
-          
-          return 100;
-        }
-        return prevProgress + 5;
+    try {
+      const results = [];
+      
+      // Process each file
+      for (const file of selectedFiles) {
+        // Convert PDF to Word
+        const blob = await PDFService.pdfToWord(file, (fileProgress) => {
+          // Calculate overall progress (equal weight per file)
+          const fileWeight = 1 / selectedFiles.length;
+          const overallProgress = selectedFiles.indexOf(file) * fileWeight * 100 + fileProgress * fileWeight;
+          setProgress(Math.round(overallProgress));
+        });
+        
+        // Add to results
+        results.push({
+          name: file.name.replace(/\.pdf$/, '.docx'),
+          blob
+        });
+      }
+      
+      setConvertedFiles(results);
+      toast({
+        title: "Conversion complete",
+        description: `Successfully converted ${results.length} file(s).`
       });
-    }, 200);
+    } catch (error) {
+      console.error('Conversion error:', error);
+      toast({
+        variant: "destructive",
+        title: "Conversion failed",
+        description: "An error occurred during conversion. Please try again."
+      });
+    } finally {
+      setConverting(false);
+      setProgress(100);
+    }
   };
 
-  const handleDownload = () => {
+  const handleDownload = (file: { name: string; blob: Blob }) => {
+    PDFService.downloadBlob(file.blob, file.name);
     toast({
       title: "Download started",
-      description: "Your converted files will be downloaded shortly."
+      description: `Downloading ${file.name}`
+    });
+  };
+
+  const handleDownloadAll = () => {
+    convertedFiles.forEach(file => {
+      PDFService.downloadBlob(file.blob, file.name);
+    });
+    
+    toast({
+      title: "Downloads started",
+      description: `Downloading ${convertedFiles.length} files`
     });
   };
 
@@ -167,16 +195,25 @@ const PdfToWord = () => {
                     <h4 className="font-medium mb-2 text-left">Converted Files</h4>
                     <div className="space-y-2">
                       {convertedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center bg-zinc-50 p-2 rounded">
-                          <FileText className="h-5 w-5 text-zinc-500 mr-2" />
-                          <span className="text-sm truncate">{file}</span>
+                        <div key={index} className="flex items-center justify-between bg-zinc-50 p-2 rounded">
+                          <div className="flex items-center">
+                            <FileText className="h-5 w-5 text-zinc-500 mr-2" />
+                            <span className="text-sm truncate">{file.name}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownload(file)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button
-                      onClick={handleDownload}
+                      onClick={handleDownloadAll}
                       className="bg-zenith-500 hover:bg-zenith-600"
                     >
                       <Download className="mr-2 h-5 w-5" /> Download All
@@ -229,7 +266,7 @@ const PdfToWord = () => {
               className="bg-zenith-500 hover:bg-zenith-600"
               onClick={handleLoginDialogOpen}
             >
-              Login / Sign Up
+              Log In / Sign Up
             </Button>
           </DialogFooter>
         </DialogContent>

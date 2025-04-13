@@ -8,18 +8,33 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowRight, Download, Combine, GripVertical, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PDFService } from '@/lib/pdf-service';
 
 const MergePdf = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [merging, setMerging] = useState(false);
   const [merged, setMerged] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [mergedPdf, setMergedPdf] = useState<Blob | null>(null);
+  const [fileName, setFileName] = useState('merged-document.pdf');
 
   const handleFilesSelected = (selectedFiles: File[]) => {
-    setFiles(selectedFiles);
+    // Only accept PDF files
+    const pdfFiles = selectedFiles.filter(file => file.type === 'application/pdf');
+    
+    if (pdfFiles.length !== selectedFiles.length) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file format",
+        description: "Only PDF files are accepted for merging."
+      });
+    }
+    
+    setFiles(pdfFiles);
     setMerging(false);
     setMerged(false);
     setProgress(0);
+    setMergedPdf(null);
   };
 
   const moveFile = (index: number, direction: 'up' | 'down') => {
@@ -39,7 +54,7 @@ const MergePdf = () => {
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const handleMerge = () => {
+  const handleMerge = async () => {
     if (files.length < 2) {
       toast({
         variant: "destructive",
@@ -50,33 +65,59 @@ const MergePdf = () => {
     }
 
     setMerging(true);
+    setProgress(0);
     
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 5;
-      setProgress(currentProgress);
+    try {
+      // Merge the PDF files
+      const result = await PDFService.mergePdfs(files, (progress) => {
+        setProgress(progress);
+      });
       
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setMerging(false);
-        setMerged(true);
-        toast({
-          title: "Success",
-          description: 'PDF files merged successfully!'
-        });
+      setMergedPdf(result);
+      setMerged(true);
+      
+      // Generate a filename based on the first two files
+      if (files.length >= 2) {
+        const base1 = files[0].name.replace(/\.pdf$/i, '');
+        const base2 = files[1].name.replace(/\.pdf$/i, '');
+        setFileName(`${base1}_${base2}${files.length > 2 ? `_and_${files.length - 2}_more` : ''}.pdf`);
+      } else {
+        setFileName('merged-document.pdf');
       }
-    }, 200);
+      
+      toast({
+        title: "Success",
+        description: 'PDF files merged successfully!'
+      });
+    } catch (error) {
+      console.error('Error merging PDFs:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: 'Failed to merge PDF files. Please try again.'
+      });
+      setMerging(false);
+    }
   };
 
   const handleDownload = () => {
-    toast({
-      title: "Success",
-      description: 'Your merged PDF would now download.'
-    });
+    if (!mergedPdf) return;
     
-    setFiles([]);
-    setMerged(false);
-    setProgress(0);
+    try {
+      PDFService.downloadBlob(mergedPdf, fileName);
+      
+      toast({
+        title: "Success",
+        description: 'Your merged PDF is downloading.'
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: 'Failed to download the merged PDF. Please try again.'
+      });
+    }
   };
 
   return (
@@ -200,12 +241,15 @@ const MergePdf = () => {
                   <ConversionProgress 
                     status={merged ? 'success' : 'processing'}
                     progress={progress}
-                    fileName="Merged PDF"
+                    fileName={fileName}
                   />
                   
                   {merged && (
                     <div className="flex justify-end mt-6">
-                      <Button onClick={handleDownload} className="bg-green-600 hover:bg-green-700">
+                      <Button 
+                        onClick={handleDownload} 
+                        className="bg-green-600 hover:bg-green-700"
+                      >
                         <Download className="mr-2 w-4 h-4" />
                         Download Merged PDF
                       </Button>
