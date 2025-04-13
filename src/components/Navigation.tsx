@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileDigit, Menu, X, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,12 @@ interface UserData {
   convertCount: number;
 }
 
-const Navigation = () => {
+interface NavigationProps {
+  openLoginDialog?: boolean;
+  setOpenLoginDialog?: (open: boolean) => void;
+}
+
+const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showSignupDialog, setShowSignupDialog] = useState(false);
@@ -26,6 +30,29 @@ const Navigation = () => {
   const [username, setUsername] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [user, setUser] = useLocalStorage<UserData | null>('pdfZenithUser', null);
+
+  // Listen for custom event to open login dialog
+  useEffect(() => {
+    const handleOpenLoginDialog = () => {
+      setShowLoginDialog(true);
+    };
+
+    window.addEventListener('openLoginDialog', handleOpenLoginDialog);
+    
+    return () => {
+      window.removeEventListener('openLoginDialog', handleOpenLoginDialog);
+    };
+  }, []);
+  
+  // Handle prop-based login dialog opening
+  useEffect(() => {
+    if (openLoginDialog) {
+      setShowLoginDialog(true);
+      if (setOpenLoginDialog) {
+        setOpenLoginDialog(false);
+      }
+    }
+  }, [openLoginDialog, setOpenLoginDialog]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -110,7 +137,7 @@ const Navigation = () => {
     });
   };
 
-  const openLoginDialog = () => {
+  const openLoginDialogHandler = () => {
     setShowSignupDialog(false);
     setShowLoginDialog(true);
   };
@@ -146,7 +173,7 @@ const Navigation = () => {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={openLoginDialog}>Login</Button>
+              <Button variant="ghost" onClick={openLoginDialogHandler}>Login</Button>
               <Button className="bg-zenith-500 hover:bg-zenith-600" onClick={openSignupDialog}>Sign Up</Button>
             </div>
           )}
@@ -208,7 +235,7 @@ const Navigation = () => {
                   className="mt-4" 
                   onClick={() => {
                     setIsOpen(false);
-                    openLoginDialog();
+                    openLoginDialogHandler();
                   }}
                 >
                   Login
@@ -332,7 +359,7 @@ const Navigation = () => {
               <button 
                 type="button" 
                 className="text-zenith-500 hover:underline" 
-                onClick={openLoginDialog}
+                onClick={openLoginDialogHandler}
               >
                 Login
               </button>

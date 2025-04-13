@@ -63,7 +63,11 @@ const Footer = () => {
         </div>
         
         <div className="mt-12 pt-8 border-t border-zinc-200 text-center text-zinc-500">
-          <p>&copy; {new Date().getFullYear()} PDF Zenith. All rights reserved.</p>
+          <p className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+            <span>&copy; {new Date().getFullYear()} PDF Zenith. All rights reserved.</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="font-medium text-zenith-600">Powered by Bilvine</span>
+          </p>
         </div>
       </div>
     </footer>

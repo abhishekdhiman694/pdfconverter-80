@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -19,6 +18,7 @@ const PdfToWord = () => {
   const { canConvert, incrementConversion } = useConversion();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [user] = useLocalStorage('pdfZenithUser', null);
+  const [openGlobalLoginDialog, setOpenGlobalLoginDialog] = useState(false);
 
   const handleFilesSelected = (files: File[]) => {
     const pdfFiles = files.filter(file => file.type === 'application/pdf');
@@ -84,9 +84,17 @@ const PdfToWord = () => {
     });
   };
 
+  const handleLoginDialogOpen = () => {
+    setShowLoginDialog(false);
+    setOpenGlobalLoginDialog(true);
+    
+    const event = new CustomEvent('openLoginDialog');
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
+      <Navigation openLoginDialog={openGlobalLoginDialog} setOpenLoginDialog={setOpenGlobalLoginDialog} />
       
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-12">
@@ -219,9 +227,7 @@ const PdfToWord = () => {
             <Button variant="outline" onClick={() => setShowLoginDialog(false)}>Cancel</Button>
             <Button 
               className="bg-zenith-500 hover:bg-zenith-600"
-              onClick={() => {
-                setShowLoginDialog(false);
-              }}
+              onClick={handleLoginDialogOpen}
             >
               Login / Sign Up
             </Button>
