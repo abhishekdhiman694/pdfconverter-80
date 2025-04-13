@@ -1,23 +1,12 @@
 
 import { toast } from '@/components/ui/use-toast';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 'https://your-supabase-url.supabase.co';
-const SUPABASE_ANON_KEY = 'your-supabase-anon-key';
-
-// Create a single supabase client for interacting with the database
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id?: string;
   email: string;
   username: string;
   convertCount: number;
-}
-
-export interface ApiResponse<T> {
-  message: string;
-  [key: string]: any;
 }
 
 export class ApiService {
@@ -55,8 +44,7 @@ export class ApiService {
             id: authData.user.id,
             email,
             username,
-            convertCount: 0,
-            createdAt: new Date().toISOString()
+            convertCount: 0
           }]);
           
         if (profileError) {

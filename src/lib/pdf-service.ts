@@ -1,5 +1,4 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import FileSaver from 'file-saver';
 
@@ -12,8 +11,9 @@ interface TextEdit {
 }
 
 // Initialize PDF.js worker
-// We need to use the proper method to set up the worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// We'll use a more reliable CDN for the worker
+const pdfjs = await import('pdfjs-dist');
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 /**
  * Service for handling PDF conversions and operations
@@ -29,7 +29,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        const loadingTask = pdfjs.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
@@ -61,7 +61,6 @@ export class PDFService {
         }
         
         // Create a new document with the paragraphs
-        // Instead of using addSection which is private, we'll create a new document with all paragraphs
         const docWithContent = new Document({
           sections: [{
             children: paragraphs,
@@ -196,7 +195,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        const loadingTask = pdfjs.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
@@ -510,7 +509,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        const loadingTask = pdfjs.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         const jpgBlobs: Blob[] = [];
@@ -696,7 +695,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        const loadingTask = pdfjs.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
@@ -947,19 +946,25 @@ export class PDFService {
   }
   
   /**
-   * Download a blob as a file
+   * Helper method to download a blob as a file
    */
   static downloadBlob(blob: Blob, fileName: string) {
-    FileSaver.saveAs(blob, fileName);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
   
   /**
-   * Download multiple blobs as files
+   * Helper method to download multiple blobs as files
    */
   static downloadBlobs(blobs: Blob[], fileNamePrefix: string) {
     blobs.forEach((blob, index) => {
-      const fileName = `${fileNamePrefix}_${index + 1}.${blob.type.split('/')[1]}`;
-      FileSaver.saveAs(blob, fileName);
+      this.downloadBlob(blob, `${fileNamePrefix}_${index + 1}.jpg`);
     });
   }
 }
@@ -987,11 +992,4 @@ export const simulateFileProcessing = async (
         
         // Create a simple blob as output
         const content = 'Simulated file processing complete.';
-        const blob = new Blob([content], { type: fileType });
-        
-        onComplete(blob);
-        resolve();
-      }
-    }, stepTime);
-  });
-};
+        const blob = new
