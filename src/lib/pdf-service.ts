@@ -155,7 +155,7 @@ export class PDFService {
         
         page.drawText('This is a simulated PowerPoint to PDF conversion.', {
           x: 50,
-          y: height - 80,
+8 y: height - 80,
           size: 12,
           font
         });
@@ -990,4 +990,8 @@ export const simulateFileProcessing = async (
         const blob = new Blob([content], { type: fileType });
         
         onComplete(blob);
-        resolve
+        resolve();
+      }
+    }, stepTime);
+  });
+};
