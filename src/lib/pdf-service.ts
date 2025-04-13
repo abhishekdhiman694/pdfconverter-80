@@ -155,7 +155,7 @@ export class PDFService {
         
         page.drawText('This is a simulated PowerPoint to PDF conversion.', {
           x: 50,
-8 y: height - 80,
+          y: height - 80,
           size: 12,
           font
         });
