@@ -1,207 +1,228 @@
-
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
 import ConversionProgress from '@/components/ConversionProgress';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
-import { AlertCircle, ArrowRight, Download, FileText } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { Download, FileText, AlertCircle } from 'lucide-react';
+import { useConversion } from '@/contexts/ConversionContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 const PdfToWord = () => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [convertedFiles, setConvertedFiles] = useState<string[]>([]);
   const [converting, setConverting] = useState(false);
-  const [converted, setConverted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { canConvert, incrementConversion } = useConversion();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [user] = useLocalStorage('pdfZenithUser', null);
 
-  const handleFilesSelected = (selectedFiles: File[]) => {
-    setFiles(selectedFiles);
-    setConverting(false);
-    setConverted(false);
-    setProgress(0);
+  const handleFilesSelected = (files: File[]) => {
+    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    
+    if (pdfFiles.length !== files.length) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file format",
+        description: "Only PDF files are accepted for this conversion."
+      });
+    }
+    
+    setSelectedFiles(pdfFiles);
   };
 
   const handleConvert = () => {
-    if (files.length === 0) {
+    if (!canConvert && !user) {
+      setShowLoginDialog(true);
+      return;
+    }
+    
+    if (selectedFiles.length === 0) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: 'Please select at least one file to convert'
+        title: "No files selected",
+        description: "Please select at least one PDF file to convert."
       });
       return;
     }
-
-    setConverting(true);
     
-    let currentProgress = 0;
+    incrementConversion();
+    
+    setConverting(true);
+    setProgress(0);
+    
     const interval = setInterval(() => {
-      currentProgress += 5;
-      setProgress(currentProgress);
-      
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setConverting(false);
-        setConverted(true);
-        toast({
-          title: "Success",
-          description: 'Conversion completed successfully!'
-        });
-      }
+      setProgress(prevProgress => {
+        if (prevProgress >= 100) {
+          clearInterval(interval);
+          setConverting(false);
+          
+          const converted = selectedFiles.map(file => 
+            file.name.replace('.pdf', '.docx')
+          );
+          setConvertedFiles(converted);
+          
+          toast({
+            title: "Conversion complete",
+            description: `Successfully converted ${selectedFiles.length} file(s).`
+          });
+          
+          return 100;
+        }
+        return prevProgress + 5;
+      });
     }, 200);
   };
 
   const handleDownload = () => {
     toast({
-      title: "Success",
-      description: 'Your file would now download.'
+      title: "Download started",
+      description: "Your converted files will be downloaded shortly."
     });
-    
-    setFiles([]);
-    setConverted(false);
-    setProgress(0);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
       
-      <section className="py-12 bg-gradient-to-b from-zenith-50 to-white">
-        <div className="container mx-auto px-4 text-center">
-          <div className="inline-block p-3 bg-zenith-100 rounded-xl mb-4">
-            <FileText className="w-8 h-8 text-zenith-600" />
-          </div>
-          <h1 className="text-4xl font-bold mb-4">PDF to Word Converter</h1>
-          <p className="text-zinc-600 max-w-2xl mx-auto">
-            Convert PDF to editable Word documents online. 
-            Preserve the formatting of your PDF in the resulting DOC/DOCX file.
-          </p>
-        </div>
-      </section>
-      
-      <section className="py-12 flex-1">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-6 md:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <h2 className="text-xl font-semibold mb-4">Upload Files</h2>
-                <FileUpload 
-                  acceptedFileTypes=".pdf"
-                  onFilesSelected={handleFilesSelected}
-                />
-              </div>
-              
-              <div className="bg-zinc-50 rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-4">Conversion Settings</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Output Format</span>
-                    <span className="text-sm font-medium">DOCX</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Max File Size</span>
-                    <span className="text-sm font-medium">100 MB</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">OCR</span>
-                    <span className="text-sm font-medium">Enabled</span>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button 
-                      onClick={handleConvert}
-                      disabled={files.length === 0 || converting}
-                      className="w-full bg-zenith-500 hover:bg-zenith-600"
-                    >
-                      {converting ? 'Converting...' : 'Convert to Word'}
-                      {!converting && <ArrowRight className="ml-2 w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+      <main className="flex-grow">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-2">PDF to Word Converter</h1>
+              <p className="text-zinc-600">
+                Convert your PDF files to editable Word documents with high accuracy.
+              </p>
             </div>
             
-            {(converting || converted) && (
-              <div className="mt-8 border-t border-zinc-100 pt-8">
-                <h2 className="text-xl font-semibold mb-4">Conversion Progress</h2>
-                
-                <div className="space-y-4">
-                  {files.map((file, index) => (
-                    <ConversionProgress 
-                      key={index}
-                      status={converted ? 'success' : 'processing'}
-                      progress={progress}
-                      fileName={file.name}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              {!convertedFiles.length ? (
+                <>
+                  <div className="mb-6">
+                    <FileUpload 
+                      acceptedFileTypes=".pdf" 
+                      onFilesSelected={handleFilesSelected} 
+                      maxFiles={3}
                     />
-                  ))}
+                  </div>
                   
-                  {converted && (
-                    <div className="flex justify-end mt-6">
-                      <Button onClick={handleDownload} className="bg-green-600 hover:bg-green-700">
-                        <Download className="mr-2 w-4 h-4" />
-                        Download Converted Files
+                  {selectedFiles.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-medium mb-2">Selected Files</h3>
+                      <div className="space-y-2">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center bg-zinc-50 p-2 rounded">
+                            <FileText className="h-5 w-5 text-zinc-500 mr-2" />
+                            <span className="text-sm truncate">{file.name}</span>
+                            <span className="text-xs text-zinc-500 ml-auto">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {converting ? (
+                    <div className="mb-6">
+                      <ConversionProgress progress={progress} />
+                    </div>
+                  ) : (
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={handleConvert}
+                        className="bg-zenith-500 hover:bg-zenith-600 px-8"
+                        disabled={selectedFiles.length === 0}
+                      >
+                        Convert to Word
                       </Button>
                     </div>
                   )}
+                </>
+              ) : (
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-green-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Conversion Complete!</h3>
+                  <p className="text-zinc-600 mb-6">
+                    Your PDF files have been successfully converted to Word format.
+                  </p>
+                  <div className="mb-6 max-w-md mx-auto">
+                    <h4 className="font-medium mb-2 text-left">Converted Files</h4>
+                    <div className="space-y-2">
+                      {convertedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center bg-zinc-50 p-2 rounded">
+                          <FileText className="h-5 w-5 text-zinc-500 mr-2" />
+                          <span className="text-sm truncate">{file}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button
+                      onClick={handleDownload}
+                      className="bg-zenith-500 hover:bg-zenith-600"
+                    >
+                      <Download className="mr-2 h-5 w-5" /> Download All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedFiles([]);
+                        setConvertedFiles([]);
+                      }}
+                    >
+                      Convert Another File
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-12">
-            <h2 className="text-2xl font-semibold mb-6">How to Convert PDF to Word</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-zinc-100">
-                <div className="w-12 h-12 rounded-full bg-zenith-100 flex items-center justify-center mb-4">
-                  <span className="text-xl font-bold text-zenith-600">1</span>
-                </div>
-                <h3 className="font-medium mb-2">Upload PDF Files</h3>
-                <p className="text-zinc-500 text-sm">
-                  Select the PDF files you want to convert or drag & drop them into the upload area.
-                </p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-xl border border-zinc-100">
-                <div className="w-12 h-12 rounded-full bg-zenith-100 flex items-center justify-center mb-4">
-                  <span className="text-xl font-bold text-zenith-600">2</span>
-                </div>
-                <h3 className="font-medium mb-2">Convert PDF to Word</h3>
-                <p className="text-zinc-500 text-sm">
-                  Click the "Convert to Word" button and let our system convert your PDF documents.
-                </p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-xl border border-zinc-100">
-                <div className="w-12 h-12 rounded-full bg-zenith-100 flex items-center justify-center mb-4">
-                  <span className="text-xl font-bold text-zenith-600">3</span>
-                </div>
-                <h3 className="font-medium mb-2">Download Word Documents</h3>
-                <p className="text-zinc-500 text-sm">
-                  Download your converted Word documents individually or as a ZIP archive.
-                </p>
-              </div>
+              )}
             </div>
-          </div>
-          
-          <div className="mt-12 bg-white p-6 rounded-xl border border-zinc-100">
-            <div className="flex items-start gap-4">
-              <div className="text-amber-500 mt-1">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-medium mb-2">Keep in Mind</h3>
-                <p className="text-zinc-500 text-sm mb-2">
-                  While our PDF to Word converter is highly accurate, some complex formatting or images might be affected during conversion.
-                </p>
-                <p className="text-zinc-500 text-sm">
-                  Complex tables, certain fonts, and specific layouts may need minor adjustments after conversion.
-                </p>
-              </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">How to Convert PDF to Word</h2>
+              <ol className="list-decimal pl-5 space-y-2 text-zinc-600">
+                <li>Upload your PDF file(s) using the file uploader above.</li>
+                <li>Click the "Convert to Word" button to start the conversion process.</li>
+                <li>Wait for the conversion to complete.</li>
+                <li>Download your converted Word document.</li>
+              </ol>
             </div>
           </div>
         </div>
-      </section>
+      </main>
       
       <Footer />
+      
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Login Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4">
+              You've used your free conversion. Please log in or sign up to continue using our PDF conversion tools.
+            </p>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowLoginDialog(false)}>Cancel</Button>
+            <Button 
+              className="bg-zenith-500 hover:bg-zenith-600"
+              onClick={() => {
+                setShowLoginDialog(false);
+              }}
+            >
+              Login / Sign Up
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

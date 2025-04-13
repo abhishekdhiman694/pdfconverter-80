@@ -1,14 +1,12 @@
 
 import React, { useState } from 'react';
-import { ArrowRight, FileText, FileUp, Check, ChevronRight } from 'lucide-react';
+import { ArrowRight, FileText, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import FileUpload from '@/components/FileUpload';
-import { toast } from '@/hooks/use-toast';
-import GuidedTour from '@/components/GuidedTour';
-import '../styles/guided-tour.css';
+import { toast } from '@/components/ui/use-toast';
 
 const Hero = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -16,7 +14,6 @@ const Hero = () => {
   const [progress, setProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingComplete, setProcessingComplete] = useState(false);
-  const [isTourOpen, setIsTourOpen] = useState(false);
 
   const handleFilesSelected = (files: File[]) => {
     setSelectedFiles(files);
@@ -75,9 +72,11 @@ const Hero = () => {
     }, 200);
   };
 
-  const handleStartTour = () => {
-    setIsTourOpen(true);
-    setIsDialogOpen(false); // Close the dialog if it's open
+  const scrollToPopularTools = () => {
+    const popularToolsSection = document.querySelector('.popular-tools');
+    if (popularToolsSection) {
+      popularToolsSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -101,10 +100,10 @@ const Hero = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
-              className="bg-zenith-500 hover:bg-zenith-600 text-lg py-6 px-8 rounded-xl upload-button"
-              onClick={handleStartTour}
+              className="bg-zenith-500 hover:bg-zenith-600 text-lg py-6 px-8 rounded-xl"
+              onClick={scrollToPopularTools}
             >
-              <FileUp className="mr-2 h-5 w-5" /> Upload Files
+              Get Started
             </Button>
             <Button variant="outline" className="text-lg py-6 px-8 rounded-xl">
               <Link to="/tools" className="flex items-center">
@@ -132,9 +131,6 @@ const Hero = () => {
           </div>
         </div>
       </div>
-
-      {/* Guided Tour Component */}
-      <GuidedTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
 
       {/* Step-by-step upload dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
