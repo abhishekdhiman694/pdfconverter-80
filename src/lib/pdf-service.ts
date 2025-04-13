@@ -1,7 +1,7 @@
 
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
 import FileSaver from 'file-saver';
 
 // Initialize PDF.js worker
@@ -25,8 +25,10 @@ export class PDFService {
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
-        // Create a new Word document
-        const doc = new Document();
+        // Create a new Word document with a default options object
+        const doc = new Document({
+          sections: []
+        });
         const paragraphs: Paragraph[] = [];
         
         // Process each page
@@ -46,9 +48,9 @@ export class PDFService {
           onProgress(i / totalPages * 100);
         }
         
-        // Add all paragraphs to the document sections
+        // Add all paragraphs to the document sections using the proper API
         doc.addSection({
-          children: paragraphs
+          children: paragraphs,
         });
         
         // Generate and return Word document
@@ -421,7 +423,7 @@ export class PDFService {
         // Update progress
         onProgress(60);
         
-        // Encrypt with password
+        // Encrypt with password - fixed the parameter format
         pdfDoc.encrypt({
           password,
           permissions: {
