@@ -5,6 +5,10 @@ function useLocalStorage<T>(key: string, initialValue: T) {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    
     try {
       // Get from local storage by key
       const item = window.localStorage.getItem(key);
@@ -26,10 +30,12 @@ function useLocalStorage<T>(key: string, initialValue: T) {
       // Save state
       setStoredValue(valueToStore);
       // Save to local storage
-      if (valueToStore === null) {
-        window.localStorage.removeItem(key);
-      } else {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      if (typeof window !== 'undefined') {
+        if (valueToStore === null) {
+          window.localStorage.removeItem(key);
+        } else {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
       }
     } catch (error) {
       // A more advanced implementation would handle the error case
@@ -39,6 +45,10 @@ function useLocalStorage<T>(key: string, initialValue: T) {
 
   // Subscribe to changes in localStorage
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === key) {
         setStoredValue(e.newValue ? JSON.parse(e.newValue) : null);
