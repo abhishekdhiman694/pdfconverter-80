@@ -1,3 +1,4 @@
+
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
@@ -991,3 +992,10 @@ export const simulateFileProcessing = async (
         // Create a simple blob as output
         const content = 'Simulated file processing complete.';
         const blob = new Blob([content], { type: fileType });
+        
+        onComplete(blob);
+        resolve();
+      }
+    }, stepTime);
+  });
+};
