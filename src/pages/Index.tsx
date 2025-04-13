@@ -91,7 +91,9 @@ const Index = () => {
         </div>
       </section>
       
-      <FeaturesSection />
+      <div className="features-section">
+        <FeaturesSection />
+      </div>
       
       <section className="py-20 bg-zenith-50">
         <div className="container mx-auto px-4 text-center">

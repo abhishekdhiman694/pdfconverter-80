@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Progress } from '@/components/ui/progress';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/hooks/use-toast';
+import GuidedTour from '@/components/GuidedTour';
+import '../styles/guided-tour.css';
 
 const Hero = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -14,6 +16,7 @@ const Hero = () => {
   const [progress, setProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingComplete, setProcessingComplete] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   const handleFilesSelected = (files: File[]) => {
     setSelectedFiles(files);
@@ -72,6 +75,11 @@ const Hero = () => {
     }, 200);
   };
 
+  const handleStartTour = () => {
+    setIsTourOpen(true);
+    setIsDialogOpen(false); // Close the dialog if it's open
+  };
+
   return (
     <div className="relative overflow-hidden">
       {/* Background with gradient */}
@@ -93,8 +101,8 @@ const Hero = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
-              className="bg-zenith-500 hover:bg-zenith-600 text-lg py-6 px-8 rounded-xl"
-              onClick={() => setIsDialogOpen(true)}
+              className="bg-zenith-500 hover:bg-zenith-600 text-lg py-6 px-8 rounded-xl upload-button"
+              onClick={handleStartTour}
             >
               <FileUp className="mr-2 h-5 w-5" /> Upload Files
             </Button>
@@ -105,14 +113,18 @@ const Hero = () => {
             </Button>
           </div>
           
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-zinc-100 max-w-3xl mx-auto">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-zinc-100 max-w-3xl mx-auto popular-tools">
             <div className="flex items-center justify-center gap-3 text-zinc-500 mb-4">
               <FileText size={20} />
               <span className="text-sm">Over 20 powerful PDF tools to help you work more efficiently</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               {['PDF to Word', 'Merge PDF', 'Split PDF', 'JPG to PDF', 'Compress', 'PDF to JPG'].map((tool, index) => (
-                <Link to={`/tools/${tool.toLowerCase().replace(/\s+/g, '-')}`} key={index} className="text-xs sm:text-sm p-2 bg-zenith-50 hover:bg-zenith-100 rounded text-center text-zenith-700 transition-colors">
+                <Link 
+                  to={`/tools/${tool.toLowerCase().replace(/\s+/g, '-')}`} 
+                  key={index} 
+                  className={`text-xs sm:text-sm p-2 bg-zenith-50 hover:bg-zenith-100 rounded text-center text-zenith-700 transition-colors ${tool === 'PDF to Word' ? 'pdf-to-word-tool' : ''}`}
+                >
                   {tool}
                 </Link>
               ))}
@@ -120,6 +132,9 @@ const Hero = () => {
           </div>
         </div>
       </div>
+
+      {/* Guided Tour Component */}
+      <GuidedTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
 
       {/* Step-by-step upload dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -152,7 +167,7 @@ const Hero = () => {
           {/* Step content */}
           <div className="py-4">
             {currentStep === 1 && (
-              <div className="mb-4">
+              <div className="mb-4 file-upload-area">
                 <p className="text-zinc-600 mb-4">
                   Upload your files to get started. We support PDF, Word, Excel, PowerPoint, and image formats.
                 </p>
