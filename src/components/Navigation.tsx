@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileDigit, Menu, X, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
@@ -74,6 +75,9 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
       setShowLoginDialog(false);
       setEmail('');
       setPassword('');
+      
+      // Force reload to update login state throughout the app
+      window.location.reload();
     } else {
       toast({
         variant: "destructive",
@@ -127,6 +131,9 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
     setPassword('');
     setUsername('');
     setConfirmPassword('');
+    
+    // Force reload to update login state throughout the app
+    window.location.reload();
   };
 
   const handleLogout = () => {
@@ -135,6 +142,9 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
+    
+    // Force reload to update login state throughout the app
+    window.location.reload();
   };
 
   const openLoginDialogHandler = () => {
@@ -260,6 +270,9 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">Login to PDF Zenith</DialogTitle>
+            <DialogDescription className="text-center">
+              Enter your credentials to access all PDF tools
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="space-y-4 py-4">
             <div className="space-y-2">
@@ -308,6 +321,9 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">Create an Account</DialogTitle>
+            <DialogDescription className="text-center">
+              Sign up for unlimited access to all PDF tools
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSignup} className="space-y-4 py-4">
             <div className="space-y-2">

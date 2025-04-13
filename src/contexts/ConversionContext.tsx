@@ -14,13 +14,18 @@ interface ConversionContextType {
   incrementConversion: () => void;
   resetConversions: () => void;
   conversionCount: number;
+  showLoginPrompt: () => void;
 }
+
+// Create a custom event for opening the login dialog
+const openLoginDialogEvent = new CustomEvent('openLoginDialog');
 
 const ConversionContext = createContext<ConversionContextType>({
   canConvert: true,
   incrementConversion: () => {},
   resetConversions: () => {},
   conversionCount: 0,
+  showLoginPrompt: () => {},
 });
 
 export const useConversion = () => useContext(ConversionContext);
@@ -67,10 +72,22 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem('pdfZenithUsers', JSON.stringify(updatedUsers));
     } else if (newCount >= 1) {
       // Show login prompt after first conversion for guest users
+      showLoginPrompt();
+    }
+  };
+
+  const showLoginPrompt = () => {
+    if (!user) {
       toast({
         title: "Free Conversion Used",
         description: "You've used your free conversion. Please login or sign up to continue using our tools.",
         variant: "default",
+        action: <button 
+          onClick={() => window.dispatchEvent(openLoginDialogEvent)} 
+          className="bg-zenith-500 text-white px-3 py-1 rounded-md hover:bg-zenith-600 transition-colors"
+        >
+          Login
+        </button>,
       });
     }
   };
@@ -95,7 +112,8 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         canConvert,
         incrementConversion,
         resetConversions,
-        conversionCount
+        conversionCount,
+        showLoginPrompt
       }}
     >
       {children}
