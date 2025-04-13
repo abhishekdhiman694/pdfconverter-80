@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileDigit, Menu, X, User, LogIn } from 'lucide-react';
@@ -9,13 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-
-// Interface for user data
-interface UserData {
-  email: string;
-  username: string;
-  convertCount: number;
-}
+import { ApiService, User as UserType } from '@/lib/api-service';
+import { useConversion } from '@/contexts/ConversionContext';
 
 interface NavigationProps {
   openLoginDialog?: boolean;
@@ -30,7 +24,10 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [user, setUser] = useLocalStorage<UserData | null>('pdfZenithUser', null);
+  const [user, setUser] = useLocalStorage<UserType | null>('pdfZenithUser', null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const { refreshUserData } = useConversion();
 
   // Listen for custom event to open login dialog
   useEffect(() => {
@@ -59,35 +56,39 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
     setIsOpen(!isOpen);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoggingIn(true);
     
-    // Get users from local storage
-    const users = JSON.parse(localStorage.getItem('pdfZenithUsers') || '[]');
-    const foundUser = users.find((u: UserData) => u.email === email);
-    
-    if (foundUser) {
-      setUser(foundUser);
-      toast({
-        title: "Success",
-        description: "You have successfully logged in!",
-      });
-      setShowLoginDialog(false);
-      setEmail('');
-      setPassword('');
+    try {
+      const loggedInUser = await ApiService.login(email, password);
       
-      // Force reload to update login state throughout the app
-      window.location.reload();
-    } else {
+      if (loggedInUser) {
+        setUser(loggedInUser);
+        toast({
+          title: "Success",
+          description: "You have successfully logged in!",
+        });
+        setShowLoginDialog(false);
+        setEmail('');
+        setPassword('');
+        
+        // Refresh user data from server
+        await refreshUserData();
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
@@ -99,52 +100,41 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
       return;
     }
     
-    // Get existing users or create empty array
-    const existingUsers = JSON.parse(localStorage.getItem('pdfZenithUsers') || '[]');
+    setIsRegistering(true);
     
-    // Check if email already exists
-    if (existingUsers.some((user: UserData) => user.email === email)) {
+    try {
+      const newUser = await ApiService.register(email, username, password);
+      
+      if (newUser) {
+        setUser(newUser);
+        toast({
+          title: "Success",
+          description: "Your account has been created!",
+        });
+        setShowSignupDialog(false);
+        setEmail('');
+        setPassword('');
+        setUsername('');
+        setConfirmPassword('');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
       toast({
         variant: "destructive",
-        title: "Email Already Exists",
-        description: "This email is already registered. Please log in instead.",
+        title: "Registration Failed",
+        description: "An unexpected error occurred. Please try again.",
       });
-      return;
+    } finally {
+      setIsRegistering(false);
     }
-    
-    const newUser = { email, username, convertCount: 0 };
-    
-    // Add new user
-    existingUsers.push(newUser);
-    localStorage.setItem('pdfZenithUsers', JSON.stringify(existingUsers));
-    
-    // Log user in
-    setUser(newUser);
-    
-    toast({
-      title: "Success",
-      description: "Your account has been created!",
-    });
-    
-    setShowSignupDialog(false);
-    setEmail('');
-    setPassword('');
-    setUsername('');
-    setConfirmPassword('');
-    
-    // Force reload to update login state throughout the app
-    window.location.reload();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setUser(null);
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
-    
-    // Force reload to update login state throughout the app
-    window.location.reload();
   };
 
   const openLoginDialogHandler = () => {
@@ -284,6 +274,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
+                disabled={isLoggingIn}
               />
             </div>
             <div className="space-y-2">
@@ -295,6 +286,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
+                disabled={isLoggingIn}
               />
             </div>
             <div className="text-sm text-center">
@@ -303,13 +295,19 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 type="button" 
                 className="text-zenith-500 hover:underline" 
                 onClick={openSignupDialog}
+                disabled={isLoggingIn}
               >
                 Sign up
               </button>
             </div>
             <div className="pt-4 flex justify-end">
-              <Button type="submit" className="bg-zenith-500 hover:bg-zenith-600 w-full">
-                <LogIn className="mr-2 h-4 w-4" /> Login
+              <Button 
+                type="submit" 
+                className="bg-zenith-500 hover:bg-zenith-600 w-full" 
+                disabled={isLoggingIn}
+              >
+                <LogIn className="mr-2 h-4 w-4" /> 
+                {isLoggingIn ? 'Logging in...' : 'Login'}
               </Button>
             </div>
           </form>
@@ -335,6 +333,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
+                disabled={isRegistering}
               />
             </div>
             <div className="space-y-2">
@@ -346,6 +345,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)} 
                 required 
+                disabled={isRegistering}
               />
             </div>
             <div className="space-y-2">
@@ -357,6 +357,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
+                disabled={isRegistering}
               />
             </div>
             <div className="space-y-2">
@@ -368,6 +369,7 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 value={confirmPassword} 
                 onChange={(e) => setConfirmPassword(e.target.value)} 
                 required 
+                disabled={isRegistering}
               />
             </div>
             <div className="text-sm text-center">
@@ -376,13 +378,18 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
                 type="button" 
                 className="text-zenith-500 hover:underline" 
                 onClick={openLoginDialogHandler}
+                disabled={isRegistering}
               >
                 Login
               </button>
             </div>
             <div className="pt-4 flex justify-end">
-              <Button type="submit" className="bg-zenith-500 hover:bg-zenith-600 w-full">
-                Create Account
+              <Button 
+                type="submit" 
+                className="bg-zenith-500 hover:bg-zenith-600 w-full"
+                disabled={isRegistering}
+              >
+                {isRegistering ? 'Creating Account...' : 'Create Account'}
               </Button>
             </div>
           </form>

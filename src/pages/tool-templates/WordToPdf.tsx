@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
@@ -10,6 +10,8 @@ import { Download, FileText, AlertCircle } from 'lucide-react';
 import { useConversion } from '@/contexts/ConversionContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { PDFService } from '@/lib/pdf-service';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { User } from '@/lib/api-service';
 
 const WordToPdf = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -17,7 +19,15 @@ const WordToPdf = () => {
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const { canConvert, incrementConversion } = useConversion();
+  const { canConvert, incrementConversion, refreshUserData } = useConversion();
+  const [user] = useLocalStorage<User | null>('pdfZenithUser', null);
+
+  // Refresh user data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      refreshUserData();
+    }
+  }, [user, refreshUserData]);
 
   const handleFilesSelected = (files: File[]) => {
     const wordFiles = files.filter(file => 
@@ -37,7 +47,7 @@ const WordToPdf = () => {
   };
 
   const handleConvert = async () => {
-    if (!canConvert && !selectedFiles.length) {
+    if (!canConvert && !user) {
       setShowLoginDialog(true);
       return;
     }

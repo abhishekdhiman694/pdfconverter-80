@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
@@ -10,12 +9,7 @@ import { PDFService } from '@/lib/pdf-service';
 import { useConversion } from '@/contexts/ConversionContext';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { toast } from '@/components/ui/use-toast';
-
-interface UserData {
-  email: string;
-  username: string;
-  convertCount: number;
-}
+import { User } from '@/lib/api-service';
 
 const PdfToWord = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -25,12 +19,17 @@ const PdfToWord = () => {
   const [conversionStatus, setConversionStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [conversionError, setConversionError] = useState('');
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const { canConvert, incrementConversion, showLoginPrompt } = useConversion();
-  const [user] = useLocalStorage<UserData | null>('pdfZenithUser', null);
+  const { canConvert, incrementConversion, showLoginPrompt, refreshUserData } = useConversion();
+  const [user] = useLocalStorage<User | null>('pdfZenithUser', null);
+
+  useEffect(() => {
+    if (user) {
+      refreshUserData();
+    }
+  }, [user, refreshUserData]);
 
   const handleFileSelect = (files: File[]) => {
     setSelectedFiles(files);
-    // Reset conversion state when new files are selected
     setConvertedFiles([]);
     setProgress(0);
     setConversionStatus('processing');
@@ -47,7 +46,6 @@ const PdfToWord = () => {
       return;
     }
     
-    // Check if user can convert
     if (!canConvert && !user) {
       showLoginPrompt();
       setLoginDialogOpen(true);
@@ -63,12 +61,10 @@ const PdfToWord = () => {
       
       for (const file of selectedFiles) {
         try {
-          // Convert PDF to Word
           const blob = await PDFService.pdfToWord(file, (progressValue) => {
             setProgress(Math.round(progressValue));
           });
           
-          // Create a File object from the blob
           const convertedFile = new File([blob], file.name.replace('.pdf', '.docx'), {
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });

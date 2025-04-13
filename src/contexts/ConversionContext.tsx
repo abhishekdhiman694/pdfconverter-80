@@ -2,12 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { toast } from '@/components/ui/use-toast';
-
-interface UserData {
-  email: string;
-  username: string;
-  convertCount: number;
-}
+import { ApiService, User } from '@/lib/api-service';
 
 interface ConversionContextType {
   canConvert: boolean;
@@ -15,6 +10,7 @@ interface ConversionContextType {
   resetConversions: () => void;
   conversionCount: number;
   showLoginPrompt: () => void;
+  refreshUserData: () => Promise<void>;
 }
 
 // Create a custom event for opening the login dialog
@@ -26,12 +22,13 @@ const ConversionContext = createContext<ConversionContextType>({
   resetConversions: () => {},
   conversionCount: 0,
   showLoginPrompt: () => {},
+  refreshUserData: async () => {},
 });
 
 export const useConversion = () => useContext(ConversionContext);
 
 export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useLocalStorage<UserData | null>('pdfZenithUser', null);
+  const [user, setUser] = useLocalStorage<User | null>('pdfZenithUser', null);
   const [conversionCount, setConversionCount] = useState(0);
   const [canConvert, setCanConvert] = useState(true);
   
@@ -54,22 +51,35 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setCanConvert(conversionCount < 1);
     }
   }, [conversionCount, user]);
+
+  // Refresh user data from the server
+  const refreshUserData = async () => {
+    if (!user) return;
+    
+    try {
+      const updatedUser = await ApiService.getUserData(user.email);
+      if (updatedUser) {
+        setUser(updatedUser);
+        setConversionCount(updatedUser.convertCount);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
   
-  const incrementConversion = () => {
+  const incrementConversion = async () => {
     const newCount = conversionCount + 1;
     setConversionCount(newCount);
     
     if (user) {
-      // Update user's conversion count in local storage
-      const updatedUser = { ...user, convertCount: newCount };
-      setUser(updatedUser);
-      
-      // Also update in the users array
-      const users = JSON.parse(localStorage.getItem('pdfZenithUsers') || '[]');
-      const updatedUsers = users.map((u: UserData) => 
-        u.email === user.email ? updatedUser : u
-      );
-      localStorage.setItem('pdfZenithUsers', JSON.stringify(updatedUsers));
+      // Update user's conversion count in MongoDB
+      const updatedCount = await ApiService.incrementConversion(user.email);
+      if (updatedCount !== null) {
+        // Update local state with server response
+        const updatedUser = { ...user, convertCount: updatedCount };
+        setUser(updatedUser);
+        setConversionCount(updatedCount);
+      }
     } else if (newCount >= 1) {
       // Show login prompt after first conversion for guest users
       showLoginPrompt();
@@ -92,17 +102,18 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
   
-  const resetConversions = () => {
-    setConversionCount(0);
+  const resetConversions = async () => {
     if (user) {
-      const updatedUser = { ...user, convertCount: 0 };
-      setUser(updatedUser);
-      
-      const users = JSON.parse(localStorage.getItem('pdfZenithUsers') || '[]');
-      const updatedUsers = users.map((u: UserData) => 
-        u.email === user.email ? updatedUser : u
-      );
-      localStorage.setItem('pdfZenithUsers', JSON.stringify(updatedUsers));
+      // Reset conversions in MongoDB
+      const success = await ApiService.resetConversions(user.email);
+      if (success) {
+        const updatedUser = { ...user, convertCount: 0 };
+        setUser(updatedUser);
+        setConversionCount(0);
+      }
+    } else {
+      // Reset local state only
+      setConversionCount(0);
     }
   };
   
@@ -113,7 +124,8 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         incrementConversion,
         resetConversions,
         conversionCount,
-        showLoginPrompt
+        showLoginPrompt,
+        refreshUserData
       }}
     >
       {children}
