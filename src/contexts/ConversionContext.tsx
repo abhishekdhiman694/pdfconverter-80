@@ -35,7 +35,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [canConvert, setCanConvert] = useState(true);
   const [isServerConnected, setIsServerConnected] = useState(false);
   
-  // Check if the backend server is connected
+  // Check if the Supabase connection is working
   useEffect(() => {
     const checkServerConnection = async () => {
       const isConnected = await ApiService.checkServerHealth();
@@ -45,7 +45,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Could not connect to the server. Some features may be unavailable."
+          description: "Could not connect to Supabase. Some features may be unavailable."
         });
       }
     };
@@ -78,7 +78,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [conversionCount, user]);
 
-  // Refresh user data from the server
+  // Refresh user data from Supabase
   const refreshUserData = async () => {
     if (!user) return;
     
@@ -98,7 +98,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setConversionCount(newCount);
     
     if (user) {
-      // Update user's conversion count in MongoDB
+      // Update user's conversion count in Supabase
       const updatedCount = await ApiService.incrementConversion(user.email);
       if (updatedCount !== null) {
         // Update local state with server response
@@ -130,7 +130,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   
   const resetConversions = async () => {
     if (user) {
-      // Reset conversions in MongoDB
+      // Reset conversions in Supabase
       const success = await ApiService.resetConversions(user.email);
       if (success) {
         const updatedUser = { ...user, convertCount: 0 };

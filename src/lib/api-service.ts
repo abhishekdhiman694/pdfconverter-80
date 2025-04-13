@@ -1,7 +1,12 @@
 
 import { toast } from '@/components/ui/use-toast';
+import { createClient } from '@supabase/supabase-js';
 
-const API_URL = 'http://localhost:5000/api';
+const SUPABASE_URL = 'https://your-supabase-url.supabase.co';
+const SUPABASE_ANON_KEY = 'your-supabase-anon-key';
+
+// Create a single supabase client for interacting with the database
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export interface User {
   id?: string;
@@ -21,26 +26,53 @@ export class ApiService {
    */
   static async register(email: string, username: string, password: string): Promise<User | null> {
     try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, username, password })
+      // Register user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            convertCount: 0,
+          }
+        }
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
+      if (authError) {
         toast({
           variant: "destructive",
           title: "Registration Error",
-          description: data.message || "Failed to register"
+          description: authError.message || "Failed to register"
         });
         return null;
       }
       
-      return data.user;
+      // Create user profile in the database
+      if (authData.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .insert([{
+            id: authData.user.id,
+            email,
+            username,
+            convertCount: 0,
+            createdAt: new Date().toISOString()
+          }]);
+          
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+        }
+        
+        // Return user object
+        return {
+          id: authData.user.id,
+          email,
+          username,
+          convertCount: 0
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Register error:', error);
       toast({
@@ -57,26 +89,42 @@ export class ApiService {
    */
   static async login(email: string, password: string): Promise<User | null> {
     try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
+      if (error) {
         toast({
           variant: "destructive",
           title: "Login Error",
-          description: data.message || "Failed to login"
+          description: error.message || "Failed to login"
         });
         return null;
       }
       
-      return data.user;
+      if (data.user) {
+        // Get user profile data
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileError || !profileData) {
+          console.error('Error fetching user profile:', profileError);
+          return null;
+        }
+        
+        return {
+          id: data.user.id,
+          email: profileData.email,
+          username: profileData.username,
+          convertCount: profileData.convertCount
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -93,21 +141,35 @@ export class ApiService {
    */
   static async incrementConversion(email: string): Promise<number | null> {
     try {
-      const response = await fetch(`${API_URL}/conversions/${email}/increment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const user = await this.getUserData(email);
+      if (!user || !user.id) return null;
       
-      const data = await response.json();
+      // First get the current count
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('convertCount')
+        .eq('id', user.id)
+        .single();
       
-      if (!response.ok) {
-        console.error('Increment conversion error:', data.message);
+      if (fetchError || !userData) {
+        console.error('Error fetching conversion count:', fetchError);
         return null;
       }
       
-      return data.convertCount;
+      const newCount = (userData.convertCount || 0) + 1;
+      
+      // Update the count
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ convertCount: newCount })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        console.error('Error updating conversion count:', updateError);
+        return null;
+      }
+      
+      return newCount;
     } catch (error) {
       console.error('Increment conversion error:', error);
       return null;
@@ -119,14 +181,15 @@ export class ApiService {
    */
   static async resetConversions(email: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_URL}/conversions/${email}/reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const user = await this.getUserData(email);
+      if (!user || !user.id) return false;
       
-      return response.ok;
+      const { error } = await supabase
+        .from('users')
+        .update({ convertCount: 0 })
+        .eq('id', user.id);
+      
+      return !error;
     } catch (error) {
       console.error('Reset conversion error:', error);
       return false;
@@ -138,16 +201,23 @@ export class ApiService {
    */
   static async getUserData(email: string): Promise<User | null> {
     try {
-      const response = await fetch(`${API_URL}/users/${email}`);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.error('Get user data error:', data.message);
+      if (error || !data) {
+        console.error('Get user data error:', error);
         return null;
       }
       
-      return data.user;
+      return {
+        id: data.id,
+        email: data.email,
+        username: data.username,
+        convertCount: data.convertCount
+      };
     } catch (error) {
       console.error('Get user data error:', error);
       return null;
@@ -159,10 +229,26 @@ export class ApiService {
    */
   static async checkServerHealth(): Promise<boolean> {
     try {
-      const response = await fetch(`${API_URL}/health`);
-      return response.ok;
+      // Check if Supabase is accessible
+      const { error } = await supabase.from('users').select('count').limit(1);
+      
+      // If we can connect to Supabase, consider the system healthy
+      return !error;
     } catch (error) {
       console.error('Server health check failed:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Sign out the current user
+   */
+  static async signOut(): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.signOut();
+      return !error;
+    } catch (error) {
+      console.error('Sign out error:', error);
       return false;
     }
   }
