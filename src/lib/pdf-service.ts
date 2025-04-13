@@ -1,4 +1,3 @@
-
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
@@ -13,11 +12,8 @@ interface TextEdit {
 }
 
 // Initialize PDF.js worker
-// Instead of using an external CDN which may fail to load, we'll use the built-in worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+// We need to use the proper method to set up the worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 /**
  * Service for handling PDF conversions and operations
@@ -994,8 +990,4 @@ export const simulateFileProcessing = async (
         const blob = new Blob([content], { type: fileType });
         
         onComplete(blob);
-        resolve();
-      }
-    }, stepTime);
-  });
-};
+        resolve
