@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -127,7 +128,11 @@ const PdfToWord = () => {
                   
                   {converting ? (
                     <div className="mb-6">
-                      <ConversionProgress progress={progress} />
+                      <ConversionProgress 
+                        progress={progress} 
+                        status="processing"
+                        fileName={selectedFiles.length > 0 ? selectedFiles[0].name : "File"}
+                      />
                     </div>
                   ) : (
                     <div className="flex justify-center">
