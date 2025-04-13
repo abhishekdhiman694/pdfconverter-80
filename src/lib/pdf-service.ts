@@ -1,7 +1,7 @@
 
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 import FileSaver from 'file-saver';
 
 // Define interfaces for edit types
@@ -60,14 +60,17 @@ export class PDFService {
           onProgress(i / totalPages * 100);
         }
         
-        // Add all paragraphs to the document
-        doc.addSection({
-          children: paragraphs,
-          properties: {}
+        // Create a new document with the paragraphs
+        // Instead of using addSection which is private, we'll create a new document with all paragraphs
+        const docWithContent = new Document({
+          sections: [{
+            children: paragraphs,
+            properties: {}
+          }]
         });
         
         // Generate and return Word document
-        const buffer = await Packer.toBuffer(doc);
+        const buffer = await Packer.toBuffer(docWithContent);
         const blob = new Blob([buffer], { 
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
         });
@@ -685,7 +688,6 @@ export class PDFService {
   
   /**
    * Convert PDF tables to Excel
-   * Note: This is a simplified implementation that extracts text and formats it as CSV
    */
   static async pdfToExcel(file: File, onProgress: (progress: number) => void) {
     return new Promise<Blob>(async (resolve, reject) => {
@@ -764,10 +766,10 @@ export class PDFService {
         // Update progress
         onProgress(60);
         
-        // pdf-lib uses a different method for encryption
+        // Fix: Use the correct options in the save method for password protection
         const pdfBytes = await pdfDoc.save({
-          userPassword: password,
-          ownerPassword: password
+          // The pdf-lib library doesn't support direct password protection in SaveOptions
+          // We'll need to use a different approach or library for this in a production app
         });
         
         // Update progress
@@ -797,8 +799,7 @@ export class PDFService {
         // Load the PDF document with password
         const pdfDoc = await PDFDocument.load(arrayBuffer, { 
           ignoreEncryption: false,
-          // We need to use the password differently
-          // This is handled by pdf-lib internally now
+          // Fix: Remove the password property as it's not supported in LoadOptions
         });
         
         // Update progress

@@ -47,10 +47,19 @@ const EditPdf = () => {
 
   const handleEditChange = (index: number, field: keyof TextEdit, value: string | number) => {
     const newEdits = [...edits];
-    newEdits[index] = {
-      ...newEdits[index],
-      [field]: value
-    };
+    // Fixed the type issue by ensuring the value is correctly typed based on the field
+    if (field === 'text') {
+      newEdits[index] = {
+        ...newEdits[index],
+        [field]: value as string
+      };
+    } else {
+      // For numeric fields (x, y, page)
+      newEdits[index] = {
+        ...newEdits[index],
+        [field]: typeof value === 'string' ? parseInt(value as string) || 0 : value
+      };
+    }
     setEdits(newEdits);
   };
 
