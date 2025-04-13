@@ -6,19 +6,23 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
+  onFilesSelected: (files: File[]) => void;
   acceptedFileTypes: string;
   maxFiles?: number;
-  onFilesSelected: (files: File[]) => void;
   className?: string;
+  currentFiles?: File[];
+  multiple?: boolean;
 }
 
 const FileUpload = ({ 
   acceptedFileTypes, 
   maxFiles = 10,
   onFilesSelected,
-  className 
+  className,
+  currentFiles = [],
+  multiple = false
 }: FileUploadProps) => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(currentFiles);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,14 +108,14 @@ const FileUpload = ({
         ref={fileInputRef}
         onChange={handleFileChange}
         accept={acceptedFileTypes}
-        multiple={maxFiles > 1}
+        multiple={multiple && maxFiles > 1}
         className="hidden"
       />
       
       <div 
         className={cn(
-          "drop-area",
-          isDragging && "active"
+          "drop-area border-2 border-dashed border-zinc-200 rounded-lg p-4 cursor-pointer transition-colors",
+          isDragging && "border-zenith-500 bg-zenith-50"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

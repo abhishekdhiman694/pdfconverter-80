@@ -1,5 +1,5 @@
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, StandardFonts, PDFDocumentOptions } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -32,7 +32,15 @@ export class PDFService {
         const totalPages = pdf.numPages;
         
         // Create a new Word document
-        const doc = new Document();
+        const doc = new Document({
+          sections: [{
+            properties: {
+              type: SectionType.CONTINUOUS
+            },
+            children: []
+          }]
+        });
+        
         const paragraphs: Paragraph[] = [];
         
         // Process each page
@@ -54,7 +62,7 @@ export class PDFService {
           onProgress((i / totalPages) * 100);
         }
         
-        // Add all paragraphs to the document
+        // Add all paragraphs to the document's first section
         doc.addSection({
           children: paragraphs,
           properties: { type: SectionType.CONTINUOUS }
@@ -461,7 +469,7 @@ export class PDFService {
         onProgress(60);
         
         // Encrypt with password
-        pdfDoc.encrypt({
+        const pdfBytes = await pdfDoc.save({
           userPassword: password,
           ownerPassword: password,
           permissions: {
@@ -474,9 +482,6 @@ export class PDFService {
             documentAssembly: false,
           },
         });
-        
-        // Save the protected PDF
-        const pdfBytes = await pdfDoc.save();
         
         // Update progress
         onProgress(100);

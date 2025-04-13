@@ -106,7 +106,7 @@ const SplitPdf = () => {
               <>
                 <FileUpload
                   onFilesSelected={handleFileChange}
-                  accept=".pdf"
+                  acceptedFileTypes=".pdf"
                   maxFiles={1}
                   currentFiles={file ? [file] : []}
                 />

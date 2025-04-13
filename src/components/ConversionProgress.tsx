@@ -7,19 +7,21 @@ import { cn } from '@/lib/utils';
 type ConversionStatus = 'processing' | 'success' | 'error';
 
 interface ConversionProgressProps {
-  status: ConversionStatus;
+  status?: ConversionStatus;
   progress: number;
   fileName: string;
   errorMessage?: string;
   className?: string;
+  conversionType?: string;
 }
 
 const ConversionProgress = ({ 
-  status, 
+  status = 'processing', 
   progress, 
   fileName, 
   errorMessage,
-  className 
+  className,
+  conversionType 
 }: ConversionProgressProps) => {
   return (
     <div className={cn("bg-white p-4 rounded-xl border", className, {
@@ -47,7 +49,7 @@ const ConversionProgress = ({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{fileName}</p>
           <p className="text-xs text-zinc-500">
-            {status === 'processing' && 'Converting...'}
+            {status === 'processing' && (conversionType ? `Converting ${conversionType}...` : 'Converting...')}
             {status === 'success' && 'Conversion complete'}
             {status === 'error' && (errorMessage || 'Conversion failed')}
           </p>

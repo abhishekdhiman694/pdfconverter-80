@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Minimize2 } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import ConversionProgress from '@/components/ConversionProgress';
 import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
@@ -64,13 +64,9 @@ const CompressPdf = () => {
       // Download the compressed PDF
       PDFService.downloadBlob(compressedPdf, fileName);
       
-      const originalSize = (file.size / 1024 / 1024).toFixed(2);
-      const compressedSize = (compressedPdf.size / 1024 / 1024).toFixed(2);
-      const reduction = (((file.size - compressedPdf.size) / file.size) * 100).toFixed(1);
-      
       toast({
         title: "Compression complete",
-        description: `Reduced from ${originalSize} MB to ${compressedSize} MB (${reduction}% smaller).`
+        description: `Successfully compressed ${file.name}.`
       });
       
       // Increment conversion count
@@ -96,12 +92,12 @@ const CompressPdf = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-6">
             <div className="bg-zenith-100 p-4 rounded-full">
-              <Minimize2 size={32} className="text-zenith-600" />
+              <FileDown size={32} className="text-zenith-600" />
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-4">Compress PDF</h1>
           <p className="text-zinc-600 max-w-2xl mx-auto">
-            Reduce your PDF file size while maintaining quality.
+            Reduce the file size of your PDF documents while maintaining quality.
           </p>
         </div>
       </section>
@@ -113,16 +109,10 @@ const CompressPdf = () => {
               <>
                 <FileUpload
                   onFilesSelected={handleFileChange}
-                  accept=".pdf"
+                  acceptedFileTypes=".pdf"
                   maxFiles={1}
                   currentFiles={file ? [file] : []}
                 />
-                
-                {file && (
-                  <div className="mt-4 text-center text-sm text-zinc-600">
-                    Original size: {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </div>
-                )}
                 
                 <div className="mt-6 text-center">
                   <Button 
@@ -140,8 +130,8 @@ const CompressPdf = () => {
                   <ol className="list-decimal pl-5 space-y-2 text-zinc-700">
                     <li>Upload your PDF document.</li>
                     <li>Click the "Compress PDF" button.</li>
-                    <li>Wait for compression to complete.</li>
-                    <li>Download your compressed PDF file.</li>
+                    <li>Wait for the compression to complete.</li>
+                    <li>Download your compressed PDF.</li>
                   </ol>
                 </div>
               </>
