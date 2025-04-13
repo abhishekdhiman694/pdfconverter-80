@@ -19,6 +19,16 @@ import SplitPdf from "./pages/tool-templates/SplitPdf";
 import CompressPdf from "./pages/tool-templates/CompressPdf";
 import PdfToExcel from "./pages/tool-templates/PdfToExcel";
 import ProtectPdf from "./pages/tool-templates/ProtectPdf";
+import PdfToPpt from "./pages/tool-templates/PdfToPpt";
+import PptToPdf from "./pages/tool-templates/PptToPdf";
+import HtmlToPdf from "./pages/tool-templates/HtmlToPdf";
+import ExcelToPdf from "./pages/tool-templates/ExcelToPdf";
+import EditPdf from "./pages/tool-templates/EditPdf";
+import OrganizePdf from "./pages/tool-templates/OrganizePdf";
+import UnlockPdf from "./pages/tool-templates/UnlockPdf";
+import WatermarkPdf from "./pages/tool-templates/WatermarkPdf";
+import RotatePdf from "./pages/tool-templates/RotatePdf";
+import OcrPdf from "./pages/tool-templates/OcrPdf";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +54,16 @@ const App = () => (
             <Route path="/tools/compress-pdf" element={<CompressPdf />} />
             <Route path="/tools/pdf-to-excel" element={<PdfToExcel />} />
             <Route path="/tools/protect-pdf" element={<ProtectPdf />} />
+            <Route path="/tools/pdf-to-ppt" element={<PdfToPpt />} />
+            <Route path="/tools/ppt-to-pdf" element={<PptToPdf />} />
+            <Route path="/tools/html-to-pdf" element={<HtmlToPdf />} />
+            <Route path="/tools/excel-to-pdf" element={<ExcelToPdf />} />
+            <Route path="/tools/edit-pdf" element={<EditPdf />} />
+            <Route path="/tools/organize-pdf" element={<OrganizePdf />} />
+            <Route path="/tools/unlock-pdf" element={<UnlockPdf />} />
+            <Route path="/tools/watermark-pdf" element={<WatermarkPdf />} />
+            <Route path="/tools/rotate-pdf" element={<RotatePdf />} />
+            <Route path="/tools/ocr-pdf" element={<OcrPdf />} />
             
             {/* Other tool routes would go here */}
             <Route path="/tools/:toolName" element={<NotFound />} />
