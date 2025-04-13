@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Upload, FileIcon, XCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,11 @@ const FileUpload = ({
 
   const addFiles = (newFiles: File[]) => {
     if (files.length + newFiles.length > maxFiles) {
-      toast.error(`You can only upload up to ${maxFiles} files at once.`);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `You can only upload up to ${maxFiles} files at once.`
+      });
       return;
     }
 
@@ -37,7 +42,11 @@ const FileUpload = ({
     const validFiles = newFiles.filter(file => {
       const isValidType = new RegExp(acceptedFileTypes).test(file.type);
       if (!isValidType) {
-        toast.error(`File type not supported: ${file.name}`);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `File type not supported: ${file.name}`
+        });
       }
       return isValidType;
     });

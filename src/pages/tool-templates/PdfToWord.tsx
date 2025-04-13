@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -22,7 +23,11 @@ const PdfToWord = () => {
 
   const handleConvert = () => {
     if (files.length === 0) {
-      toast.error('Please select at least one file to convert');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: 'Please select at least one file to convert'
+      });
       return;
     }
 
@@ -37,13 +42,19 @@ const PdfToWord = () => {
         clearInterval(interval);
         setConverting(false);
         setConverted(true);
-        toast.success('Conversion completed successfully!');
+        toast({
+          title: "Success",
+          description: 'Conversion completed successfully!'
+        });
       }
     }, 200);
   };
 
   const handleDownload = () => {
-    toast.success('Your file would now download.');
+    toast({
+      title: "Success",
+      description: 'Your file would now download.'
+    });
     
     setFiles([]);
     setConverted(false);

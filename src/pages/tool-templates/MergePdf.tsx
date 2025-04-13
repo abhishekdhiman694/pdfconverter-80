@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -40,7 +41,11 @@ const MergePdf = () => {
 
   const handleMerge = () => {
     if (files.length < 2) {
-      toast.error('Please select at least two PDF files to merge');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: 'Please select at least two PDF files to merge'
+      });
       return;
     }
 
@@ -55,13 +60,19 @@ const MergePdf = () => {
         clearInterval(interval);
         setMerging(false);
         setMerged(true);
-        toast.success('PDF files merged successfully!');
+        toast({
+          title: "Success",
+          description: 'PDF files merged successfully!'
+        });
       }
     }, 200);
   };
 
   const handleDownload = () => {
-    toast.success('Your merged PDF would now download.');
+    toast({
+      title: "Success",
+      description: 'Your merged PDF would now download.'
+    });
     
     setFiles([]);
     setMerged(false);
