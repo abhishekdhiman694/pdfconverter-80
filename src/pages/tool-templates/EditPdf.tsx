@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/use-toast';
 import { PDFService } from '@/lib/pdf-service';
 import { useConversion } from '@/contexts/ConversionContext';
 
+// Define the TextEdit interface to match what's used in pdf-service.ts
 interface TextEdit {
   text: string;
   x: number;
@@ -46,7 +47,10 @@ const EditPdf = () => {
 
   const handleEditChange = (index: number, field: keyof TextEdit, value: string | number) => {
     const newEdits = [...edits];
-    newEdits[index][field] = value;
+    newEdits[index] = {
+      ...newEdits[index],
+      [field]: value
+    };
     setEdits(newEdits);
   };
 

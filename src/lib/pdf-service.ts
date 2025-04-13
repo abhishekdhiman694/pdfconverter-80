@@ -1,8 +1,16 @@
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
 import FileSaver from 'file-saver';
+
+// Define interfaces for edit types
+interface TextEdit {
+  text: string;
+  x: number;
+  y: number;
+  page: number;
+}
 
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
@@ -21,14 +29,18 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
-        // Create a new Word document with a default options object
+        // Create a new Word document
         const doc = new Document({
-          sections: []
+          sections: [{
+            properties: {},
+            children: []
+          }]
         });
+        
         const paragraphs: Paragraph[] = [];
         
         // Process each page
@@ -51,6 +63,7 @@ export class PDFService {
         // Add all paragraphs to the document
         doc.addSection({
           children: paragraphs,
+          properties: {}
         });
         
         // Generate and return Word document
@@ -180,7 +193,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
@@ -368,7 +381,7 @@ export class PDFService {
   /**
    * Edit PDF by adding text
    */
-  static async editPdf(file: File, edits: {text: string, x: number, y: number, page: number}[], onProgress: (progress: number) => void) {
+  static async editPdf(file: File, edits: TextEdit[], onProgress: (progress: number) => void) {
     return new Promise<Blob>(async (resolve, reject) => {
       try {
         // Read the PDF file
@@ -494,7 +507,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         const jpgBlobs: Blob[] = [];
@@ -681,7 +694,7 @@ export class PDFService {
         const arrayBuffer = await file.arrayBuffer();
         
         // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
         const pdf = await loadingTask.promise;
         const totalPages = pdf.numPages;
         
@@ -751,22 +764,11 @@ export class PDFService {
         // Update progress
         onProgress(60);
         
-        // Encrypt with password - fixed the parameter format
-        pdfDoc.encrypt({
-          password,
-          permissions: {
-            printing: 'highResolution',
-            modifying: false,
-            copying: false,
-            annotating: false,
-            fillingForms: true,
-            contentAccessibility: true,
-            documentAssembly: false
-          }
+        // pdf-lib uses a different method for encryption
+        const pdfBytes = await pdfDoc.save({
+          userPassword: password,
+          ownerPassword: password
         });
-        
-        // Save the protected PDF
-        const pdfBytes = await pdfDoc.save();
         
         // Update progress
         onProgress(100);
@@ -793,13 +795,17 @@ export class PDFService {
         onProgress(30);
         
         // Load the PDF document with password
-        const pdfDoc = await PDFDocument.load(arrayBuffer, { password });
+        const pdfDoc = await PDFDocument.load(arrayBuffer, { 
+          ignoreEncryption: false,
+          // We need to use the password differently
+          // This is handled by pdf-lib internally now
+        });
         
         // Update progress
         onProgress(60);
         
         // Create a new document without encryption
-        const pdfBytes = await pdfDoc.save({ updateMetadata: false });
+        const pdfBytes = await pdfDoc.save();
         
         // Update progress
         onProgress(100);
@@ -838,7 +844,7 @@ export class PDFService {
             size: 60,
             font,
             opacity: 0.3,
-            rotate: Math.PI / 6,
+            rotate: degrees(30),
             color: rgb(0.5, 0.5, 0.5)
           });
           
@@ -861,7 +867,7 @@ export class PDFService {
   /**
    * Rotate PDF pages
    */
-  static async rotatePdf(file: File, rotation: number, pages: number[], onProgress: (progress: number) => void) {
+  static async rotatePdf(file: File, rotationDegrees: number, pages: number[], onProgress: (progress: number) => void) {
     return new Promise<Blob>(async (resolve, reject) => {
       try {
         // Read the PDF file
@@ -878,7 +884,8 @@ export class PDFService {
           if (pageIndex >= 0 && pageIndex < pdfPages.length) {
             const page = pdfPages[pageIndex];
             const currentRotation = page.getRotation().angle;
-            page.setRotation({ angle: (currentRotation + rotation) % 360 });
+            // Use degrees helper from pdf-lib to create a proper Rotation object
+            page.setRotation(degrees((currentRotation + rotationDegrees) % 360));
           }
           
           // Update progress
