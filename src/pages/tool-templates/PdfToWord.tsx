@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
 import ConversionProgress from '@/components/ConversionProgress';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowRight, Download, FileText } from 'lucide-react';
 
 const PdfToWord = () => {
@@ -16,7 +15,6 @@ const PdfToWord = () => {
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles(selectedFiles);
-    // Reset states when new files are selected
     setConverting(false);
     setConverted(false);
     setProgress(0);
@@ -30,7 +28,6 @@ const PdfToWord = () => {
 
     setConverting(true);
     
-    // Simulate conversion progress
     let currentProgress = 0;
     const interval = setInterval(() => {
       currentProgress += 5;
@@ -46,10 +43,8 @@ const PdfToWord = () => {
   };
 
   const handleDownload = () => {
-    // In a real app, this would download the converted file
     toast.success('Your file would now download.');
     
-    // Reset for new conversion
     setFiles([]);
     setConverted(false);
     setProgress(0);

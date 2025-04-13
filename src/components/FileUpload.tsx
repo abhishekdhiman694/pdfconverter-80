@@ -1,9 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, FileIcon, XCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
   acceptedFileTypes: string;

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
 import ConversionProgress from '@/components/ConversionProgress';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowRight, Download, Combine, GripVertical, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +16,6 @@ const MergePdf = () => {
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles(selectedFiles);
-    // Reset states when new files are selected
     setMerging(false);
     setMerged(false);
     setProgress(0);
@@ -48,7 +46,6 @@ const MergePdf = () => {
 
     setMerging(true);
     
-    // Simulate merging progress
     let currentProgress = 0;
     const interval = setInterval(() => {
       currentProgress += 5;
@@ -64,10 +61,8 @@ const MergePdf = () => {
   };
 
   const handleDownload = () => {
-    // In a real app, this would download the merged file
     toast.success('Your merged PDF would now download.');
     
-    // Reset for new merging
     setFiles([]);
     setMerged(false);
     setProgress(0);
