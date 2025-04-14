@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileDigit, Menu, X, User, LogIn } from 'lucide-react';
+import { FileDigit, Menu, X, User, LogIn, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -257,66 +257,85 @@ const Navigation = ({ openLoginDialog, setOpenLoginDialog }: NavigationProps = {
 
       {/* Login Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl">Login to PDF Zenith</DialogTitle>
-            <DialogDescription className="text-center">
+        <DialogContent className="sm:max-w-md w-[450px] rounded-2xl bg-white/90 backdrop-blur-lg border border-zinc-200 shadow-2xl">
+          <DialogHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-zenith-100">
+                <FileDigit className="w-8 h-8 text-zenith-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-2xl font-bold text-zenith-800">Login to PDF Zenith</DialogTitle>
+            <DialogDescription className="text-zinc-600">
               Enter your credentials to access all PDF tools
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleLogin} className="space-y-4 py-4">
+          
+          <form onSubmit={handleLogin} className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="your@email.com" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-                disabled={isLoggingIn}
-              />
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-zenith-500" /> Email
+              </Label>
+              <div className="relative">
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="your@email.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  disabled={isLoggingIn}
+                  className="pl-10 border-zinc-300 focus:border-zenith-500 focus:ring-zenith-500"
+                />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                disabled={isLoggingIn}
-              />
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-zenith-500" /> Password
+              </Label>
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  disabled={isLoggingIn}
+                  className="pl-10 border-zinc-300 focus:border-zenith-500 focus:ring-zenith-500"
+                />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
+            
             <div className="text-sm text-center">
               Don't have an account?{" "}
               <button 
                 type="button" 
-                className="text-zenith-500 hover:underline" 
+                className="text-zenith-600 hover:underline font-semibold" 
                 onClick={openSignupDialog}
                 disabled={isLoggingIn}
               >
                 Sign up
               </button>
             </div>
-            <div className="pt-4 flex justify-end">
-              <Button 
-                type="submit" 
-                className="bg-zenith-500 hover:bg-zenith-600 w-full" 
-                disabled={isLoggingIn}
-              >
-                <LogIn className="mr-2 h-4 w-4" /> 
-                {isLoggingIn ? 'Logging in...' : 'Login'}
-              </Button>
-            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-zenith-600 hover:bg-zenith-700 text-white transition-colors duration-300" 
+              disabled={isLoggingIn}
+            >
+              <LogIn className="mr-2 h-4 w-4" /> 
+              {isLoggingIn ? 'Logging in...' : 'Login'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Signup Dialog */}
+      {/* Signup Dialog - Similar improvements can be applied here */}
       <Dialog open={showSignupDialog} onOpenChange={setShowSignupDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[450px] rounded-2xl bg-white/90 backdrop-blur-lg border border-zinc-200 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">Create an Account</DialogTitle>
             <DialogDescription className="text-center">
