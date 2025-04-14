@@ -1,3 +1,4 @@
+
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import FileSaver from 'file-saver';
@@ -13,7 +14,7 @@ interface TextEdit {
 // Initialize PDF.js worker
 // We'll use a more reliable CDN for the worker
 const pdfjs = await import('pdfjs-dist');
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 /**
  * Service for handling PDF conversions and operations
@@ -992,4 +993,11 @@ export const simulateFileProcessing = async (
         
         // Create a simple blob as output
         const content = 'Simulated file processing complete.';
-        const blob = new
+        const blob = new Blob([content], { type: fileType });
+        
+        onComplete(blob);
+        resolve();
+      }
+    }, stepTime);
+  });
+};
