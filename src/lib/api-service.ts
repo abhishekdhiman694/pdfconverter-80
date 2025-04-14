@@ -3,7 +3,7 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
-  id?: string;
+  id?: number; // Changed from string to number to match Supabase schema
   email: string;
   username: string;
   convertCount: number;
@@ -38,10 +38,13 @@ export class ApiService {
       
       // Create user profile in the database
       if (authData.user) {
+        // Generate a numeric ID for the user
+        const numericId = parseInt(authData.user.id.replace(/-/g, '').substring(0, 8), 16) % 1000000000;
+        
         const { error: profileError } = await supabase
           .from('users')
           .insert({
-            id: authData.user.id,
+            id: numericId,
             email,
             username,
             convertCount: 0
@@ -53,7 +56,7 @@ export class ApiService {
         
         // Return user object
         return {
-          id: authData.user.id,
+          id: numericId,
           email,
           username,
           convertCount: 0
@@ -96,7 +99,7 @@ export class ApiService {
         const { data: profileData, error: profileError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', data.user.id)
+          .eq('email', email)  // Using email instead of id
           .single();
         
         if (profileError || !profileData) {
@@ -105,7 +108,7 @@ export class ApiService {
         }
         
         return {
-          id: data.user.id,
+          id: profileData.id, // This is a number from the database
           email: profileData.email,
           username: profileData.username,
           convertCount: profileData.convertCount
@@ -130,7 +133,7 @@ export class ApiService {
   static async incrementConversion(email: string): Promise<number | null> {
     try {
       const user = await this.getUserData(email);
-      if (!user || !user.id) return null;
+      if (!user || user.id === undefined) return null;
       
       // First get the current count
       const { data: userData, error: fetchError } = await supabase
@@ -170,7 +173,7 @@ export class ApiService {
   static async resetConversions(email: string): Promise<boolean> {
     try {
       const user = await this.getUserData(email);
-      if (!user || !user.id) return false;
+      if (!user || user.id === undefined) return false;
       
       const { error } = await supabase
         .from('users')
