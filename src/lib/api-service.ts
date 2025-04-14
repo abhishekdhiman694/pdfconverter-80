@@ -220,8 +220,18 @@ export class ApiService {
    */
   static async checkServerHealth(): Promise<boolean> {
     try {
+      // Use a simple ping request with a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       // Check if Supabase is accessible
-      const { error } = await supabase.from('users').select('count').limit(1);
+      const { error } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1)
+        .abortSignal(controller.signal);
+      
+      clearTimeout(timeoutId);
       
       // If we can connect to Supabase, consider the system healthy
       return !error;

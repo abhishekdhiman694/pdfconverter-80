@@ -38,15 +38,16 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Check if the Supabase connection is working
   useEffect(() => {
     const checkServerConnection = async () => {
-      const isConnected = await ApiService.checkServerHealth();
-      setIsServerConnected(isConnected);
-      
-      if (!isConnected) {
-        toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: "Could not connect to Supabase. Some features may be unavailable."
-        });
+      try {
+        const isConnected = await ApiService.checkServerHealth();
+        setIsServerConnected(isConnected);
+        
+        if (!isConnected) {
+          console.log('Server connection failed - working in offline mode');
+        }
+      } catch (error) {
+        console.error('Failed to check server connection:', error);
+        setIsServerConnected(false);
       }
     };
     
@@ -67,20 +68,23 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [user]);
   
-  // Check if user can convert (free user gets 1 conversion)
+  // Check if user can convert (guest users get 1 conversion when offline)
   useEffect(() => {
     if (user) {
       // Logged in users can convert unlimited files
       setCanConvert(true);
+    } else if (!isServerConnected) {
+      // When offline, allow conversions
+      setCanConvert(true);
     } else {
-      // Guest users can only convert 1 file
+      // Guest users can only convert 1 file when online
       setCanConvert(conversionCount < 1);
     }
-  }, [conversionCount, user]);
+  }, [conversionCount, user, isServerConnected]);
 
   // Refresh user data from Supabase
   const refreshUserData = async () => {
-    if (!user) return;
+    if (!user || !isServerConnected) return;
     
     try {
       const updatedUser = await ApiService.getUserData(user.email);
@@ -97,7 +101,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newCount = conversionCount + 1;
     setConversionCount(newCount);
     
-    if (user) {
+    if (user && isServerConnected) {
       // Update user's conversion count in Supabase
       const updatedCount = await ApiService.incrementConversion(user.email);
       if (updatedCount !== null) {
@@ -106,14 +110,14 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setUser(updatedUser);
         setConversionCount(updatedCount);
       }
-    } else if (newCount >= 1) {
-      // Show login prompt after first conversion for guest users
+    } else if (newCount >= 1 && !user && isServerConnected) {
+      // Show login prompt after first conversion for guest users when online
       showLoginPrompt();
     }
   };
 
   const showLoginPrompt = () => {
-    if (!user) {
+    if (!user && isServerConnected) {
       toast({
         title: "Free Conversion Used",
         description: "You've used your free conversion. Please login or sign up to continue using our tools.",
@@ -129,7 +133,7 @@ export const ConversionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
   
   const resetConversions = async () => {
-    if (user) {
+    if (user && isServerConnected) {
       // Reset conversions in Supabase
       const success = await ApiService.resetConversions(user.email);
       if (success) {

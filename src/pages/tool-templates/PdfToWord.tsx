@@ -5,12 +5,13 @@ import Footer from '@/components/Footer';
 import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
 import ConversionProgress from '@/components/ConversionProgress';
-import { Download } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import { PDFService } from '@/lib/pdf-service';
 import { useConversion } from '@/contexts/ConversionContext';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { toast } from '@/components/ui/use-toast';
 import { User } from '@/lib/api-service';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const PdfToWord = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -20,7 +21,7 @@ const PdfToWord = () => {
   const [conversionStatus, setConversionStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [conversionError, setConversionError] = useState('');
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const { canConvert, incrementConversion, showLoginPrompt, refreshUserData } = useConversion();
+  const { canConvert, incrementConversion, showLoginPrompt, refreshUserData, isServerConnected } = useConversion();
   const [user] = useLocalStorage<User | null>('pdfZenithUser', null);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ const PdfToWord = () => {
       return;
     }
     
-    if (!canConvert && !user) {
+    if (!canConvert && !user && isServerConnected) {
       showLoginPrompt();
       setLoginDialogOpen(true);
       return;
@@ -77,6 +78,10 @@ const PdfToWord = () => {
             setProgress(Math.round(progressValue));
           });
           
+          if (!blob) {
+            throw new Error('Conversion failed - no output received');
+          }
+          
           const convertedFile = new File([blob], file.name.replace('.pdf', '.docx'), {
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
@@ -90,14 +95,18 @@ const PdfToWord = () => {
         }
       }
       
-      setConvertedFiles(results);
-      setConversionStatus('success');
-      incrementConversion();
-      
-      toast({
-        title: "Conversion successful",
-        description: `Successfully converted ${results.length} file(s)`
-      });
+      if (results.length > 0) {
+        setConvertedFiles(results);
+        setConversionStatus('success');
+        incrementConversion();
+        
+        toast({
+          title: "Conversion successful",
+          description: `Successfully converted ${results.length} file(s)`
+        });
+      } else {
+        throw new Error('No files were converted successfully');
+      }
     } catch (error) {
       console.error('Conversion error:', error);
       setConversionStatus('error');
@@ -133,6 +142,16 @@ const PdfToWord = () => {
           <p className="text-zinc-600 mb-8">
             Convert your PDF documents to editable Word files with high accuracy.
           </p>
+          
+          {!isServerConnected && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Error</AlertTitle>
+              <AlertDescription>
+                Could not connect to Supabase. Operating in offline mode with limited features.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div className="bg-white p-6 rounded-xl border border-zinc-100 shadow-sm mb-8">
             <h2 className="text-lg font-semibold mb-4">Upload Files</h2>
