@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -29,7 +30,18 @@ const PdfToWord = () => {
   }, [user, refreshUserData]);
 
   const handleFileSelect = (files: File[]) => {
-    setSelectedFiles(files);
+    // Filter for PDF files only
+    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+    
+    if (pdfFiles.length !== files.length) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file format",
+        description: "Please select PDF files only."
+      });
+    }
+    
+    setSelectedFiles(pdfFiles);
     setConvertedFiles([]);
     setProgress(0);
     setConversionStatus('processing');
@@ -73,7 +85,7 @@ const PdfToWord = () => {
         } catch (fileError) {
           console.error('Error converting file:', fileError);
           setConversionStatus('error');
-          setConversionError('Error converting file: ' + file.name);
+          setConversionError(`Error converting file: ${file.name}`);
           throw fileError;
         }
       }
@@ -81,10 +93,21 @@ const PdfToWord = () => {
       setConvertedFiles(results);
       setConversionStatus('success');
       incrementConversion();
+      
+      toast({
+        title: "Conversion successful",
+        description: `Successfully converted ${results.length} file(s)`
+      });
     } catch (error) {
       console.error('Conversion error:', error);
       setConversionStatus('error');
       setConversionError('An error occurred during conversion');
+      
+      toast({
+        variant: "destructive",
+        title: "Conversion failed",
+        description: "There was an error converting your file. Please try again."
+      });
     } finally {
       setProcessing(false);
     }

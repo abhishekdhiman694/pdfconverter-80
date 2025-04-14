@@ -38,14 +38,14 @@ export class ApiService {
       
       // Create user profile in the database
       if (authData.user) {
-        const { data: profileData, error: profileError } = await supabase
+        const { error: profileError } = await supabase
           .from('users')
-          .insert([{
+          .insert({
             id: authData.user.id,
             email,
             username,
             convertCount: 0
-          }]);
+          });
           
         if (profileError) {
           console.error('Error creating user profile:', profileError);
