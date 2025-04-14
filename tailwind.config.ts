@@ -16,6 +16,9 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "system-ui", ...fontFamily.sans],
+      },
       colors: {
         border: "var(--border)",
         input: "var(--input)",
@@ -68,9 +71,6 @@ const config: Config = {
         lg: `var(--radius)`,
         md: `calc(var(--radius) - 2px)`,
         sm: "calc(var(--radius) - 4px)",
-      },
-      fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
       },
       keyframes: {
         "accordion-down": {
